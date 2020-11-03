@@ -1,0 +1,25 @@
+{
+  "name": "@tybys/embuild",
+  "version": "0.0.1",
+  "description": "",
+  "bin": {
+    "embuild": "bin/embuild.js"
+  },
+  "main": "index.js",
+  "keywords": [
+    "emscripten"
+  ],
+  "author": "toyobayashi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toyobayashi/embuild.git"
+  },
+  "bugs": {
+    "url": "https://github.com/toyobayashi/embuild/issues"
+  },
+  "homepage": "https://github.com/toyobayashi/embuild#readme",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}
