@@ -5,7 +5,7 @@ const { which } = require('./lib/which.js')
 const defaultConfig = require('./lib/config.js')
 const cwd = process.cwd()
 
-async function invokeCMake (cwd, buildDir, defines) {
+async function invokeCMake (cwd, buildDir, defines, args = []) {
   fs.mkdirSync(buildDir, { recursive: true })
 
   if (process.platform === 'win32') {
@@ -14,6 +14,7 @@ async function invokeCMake (cwd, buildDir, defines) {
     const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
     const cmakeArgs = ['cmake', 
       ...definesArgs,
+      ...args,
       '-G', nmakePath ? 'NMake Makefiles' : 'MinGW Makefiles', path.relative(buildDir, cwd)
     ]
     await spawn('emcmake.bat', cmakeArgs, buildDir)
@@ -22,6 +23,7 @@ async function invokeCMake (cwd, buildDir, defines) {
     const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
     const cmakeArgs = ['cmake', 
       ...definesArgs,
+      ...args,
       '-G', 'Unix Makefiles', path.relative(buildDir, cwd)
     ]
     await spawn('emcmake', cmakeArgs, buildDir)
@@ -33,6 +35,10 @@ async function main (config) {
   if (!process.env.EMSDK) {
     throw new Error('Set $EMSDK first')
   }
+  if (!fs.existsSync(path.join(cwd, 'CMakeLists.txt'))) {
+    throw new Error('CMakeLists.txt is not found')
+  }
+
   const mergeConfig = {
     ...defaultConfig,
     ...(config || {})
@@ -43,11 +49,14 @@ async function main (config) {
   const cmakeoutdir = path.join(cwd, mergeConfig.outDir)
 
   await invokeCMake(cwd, cmakeoutdir, {
-    CMAKE_BUILD_TYPE: mode,
-    CMAKE_VERBOSE_MAKEFILE: mode === 'Release' ? 'OFF' : 'ON',
+    ...(mergeConfig.defines || {}),
+    ...({
+      CMAKE_BUILD_TYPE: mode,
+      CMAKE_VERBOSE_MAKEFILE: mergeConfig.verbose ? 'ON' : 'OFF',
 
-    EMBUILD_CMAKE_INCLUDE: path.join(__dirname, 'cmake/options.cmake')
-  })
+      EMBUILD_CMAKE_INCLUDE: path.join(__dirname, 'cmake/options.cmake')
+    })
+  }, process.argv.slice(2))
 }
 
 exports.invokeCMake = invokeCMake
