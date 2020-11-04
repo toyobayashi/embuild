@@ -32,11 +32,11 @@ async function invokeCMake (cwd, buildDir, defines, args = []) {
 }
 
 async function main (config) {
-  if (!process.env.EMSDK) {
-    throw new Error('Set $EMSDK first')
+  if (typeof process.env.EMSDK === 'undefined') {
+    throw new Error('Environment variable $EMSDK is not set')
   }
   if (!fs.existsSync(path.join(cwd, 'CMakeLists.txt'))) {
-    throw new Error('CMakeLists.txt is not found')
+    throw new Error('CMakeLists.txt is not found in current working directory')
   }
 
   const mergeConfig = {
@@ -46,7 +46,7 @@ async function main (config) {
 
   const mode = mergeConfig.mode
 
-  const cmakeoutdir = path.join(cwd, mergeConfig.outDir)
+  const cmakeoutdir = path.isAbsolute(mergeConfig.outDir) ? mergeConfig.outDir : path.join(cwd, mergeConfig.outDir)
 
   await invokeCMake(cwd, cmakeoutdir, {
     ...(mergeConfig.defines || {}),
