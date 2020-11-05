@@ -19,7 +19,7 @@ try {
   }
 }
 
-main(conf).catch(err => {
+main(conf, process.argv.slice(2)).catch(err => {
   console.error(err)
   process.exit(1)
 })

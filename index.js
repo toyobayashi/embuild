@@ -5,7 +5,7 @@ const { which } = require('./lib/which.js')
 const defaultConfig = require('./lib/config.js')
 const cwd = process.cwd()
 
-async function invokeCMake (cwd, buildDir, defines, args = []) {
+async function invokeCMake (cwd, buildDir, defines, configureArgs = [], buildArgs = []) {
   fs.mkdirSync(buildDir, { recursive: true })
 
   if (process.platform === 'win32') {
@@ -14,24 +14,24 @@ async function invokeCMake (cwd, buildDir, defines, args = []) {
     const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
     const cmakeArgs = ['cmake', 
       ...definesArgs,
-      ...args,
+      ...configureArgs,
       '-G', nmakePath ? 'NMake Makefiles' : 'MinGW Makefiles', path.relative(buildDir, cwd)
     ]
     await spawn('emcmake.bat', cmakeArgs, buildDir)
-    await spawn('cmake', ['--build', '.'], buildDir)
+    await spawn('cmake', ['--build', '.', ...buildArgs], buildDir)
   } else {
     const definesArgs = Object.keys(defines).map(k => `-D${k}=${defines[k]}`)
     const cmakeArgs = ['cmake', 
       ...definesArgs,
-      ...args,
+      ...configureArgs,
       '-G', 'Unix Makefiles', path.relative(buildDir, cwd)
     ]
     await spawn('emcmake', cmakeArgs, buildDir)
-    await spawn('cmake', ['--build', '.'], buildDir)
+    await spawn('cmake', ['--build', '.', ...buildArgs], buildDir)
   }
 }
 
-async function main (config) {
+async function main (config, args = []) {
   if (typeof process.env.EMSDK === 'undefined') {
     throw new Error('Environment variable $EMSDK is not set')
   }
@@ -48,6 +48,17 @@ async function main (config) {
 
   const cmakeoutdir = path.isAbsolute(mergeConfig.outDir) ? mergeConfig.outDir : path.join(cwd, mergeConfig.outDir)
 
+  let configureArgs = []
+  let buildArgs = []
+
+  const index = args.indexOf('--')
+  if (index === -1) {
+    configureArgs = [...args]
+  } else {
+    configureArgs = args.slice(0, index)
+    buildArgs = args.slice(index + 1)
+  }
+
   await invokeCMake(cwd, cmakeoutdir, {
     ...(mergeConfig.defines || {}),
     ...({
@@ -56,7 +67,7 @@ async function main (config) {
 
       EMBUILD_CMAKE_INCLUDE: path.join(__dirname, 'cmake/options.cmake')
     })
-  }, process.argv.slice(2))
+  }, configureArgs, buildArgs)
 }
 
 exports.invokeCMake = invokeCMake
